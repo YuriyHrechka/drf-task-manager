@@ -1,3 +1,5 @@
+from django.utils.decorators import method_decorator  
+from django.views.decorators.csrf import csrf_exempt        
 from rest_framework import generics, status
 from rest_framework.response import Response
 from .serializers import AuthSerializer

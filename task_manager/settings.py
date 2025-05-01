@@ -36,11 +36,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    
+    "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt",
-    'django_filters',
-    
+    "django_filters",
     "tasks",
     "users",
 ]
@@ -53,6 +52,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
 ]
 
 ROOT_URLCONF = "task_manager.urls"
@@ -136,5 +136,19 @@ AUTH_USER_MODEL = "users.User"
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(weeks=1),
-    "AUTH_HEADER_TYPES": ("Bearer",),   
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for development
+CORS_ALLOW_HEADERS = [
+    "content-type",
+    "authorization",
+    "x-frontend-access",
+    "x-requested-with",
+    "accept",
+    "origin",
+    "user-agent",
+    "referer",
+]
+
+FRONTEND_ACCESS_KEY = "U4TUkxwjmbCNd4lLre6QvRI6_rjOIa1BC1eQhxaiyQg"

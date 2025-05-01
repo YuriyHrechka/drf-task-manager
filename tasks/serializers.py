@@ -17,6 +17,9 @@ class TaskDetailSerializer(serializers.ModelSerializer):
     assignees = serializers.PrimaryKeyRelatedField(
         many=True, queryset=get_user_model().objects.all()
     )
+    description = serializers.CharField(
+        allow_blank=True, required=False, default=""
+    )  # added default value
 
     class Meta:
         model = Task
@@ -64,6 +67,9 @@ class BoardDetailSerializer(serializers.ModelSerializer):
     members = serializers.PrimaryKeyRelatedField(
         many=True, queryset=get_user_model().objects.all()
     )
+    admins = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=get_user_model().objects.all()
+    )
     tasks = serializers.PrimaryKeyRelatedField(many=True, queryset=Task.objects.all())
     member_count = serializers.SerializerMethodField()
 
@@ -74,6 +80,7 @@ class BoardDetailSerializer(serializers.ModelSerializer):
             "name",
             "owner",
             "members",
+            "admins",
             "tasks",
             "created_at",
             "member_count",
@@ -83,21 +90,40 @@ class BoardDetailSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         members = validated_data.pop("members", [])
         tasks = validated_data.pop("tasks", [])
+        admins = validated_data.pop("admins", [])
         board = Board.objects.create(**validated_data)
         board.members.set(members)
         board.tasks.set(tasks)
+        board.admins.set(list(set(admins) | {board.owner}))
         return board
 
     def update(self, instance, validated_data):
         members = validated_data.pop("members", [])
+        admins = validated_data.pop("admins", None)
         tasks = validated_data.pop("tasks", [])
         instance = super().update(instance, validated_data)
         instance.members.set(members)
         instance.tasks.set(tasks)
+        if admins is not None:
+            self.set_board_owner_always_admin(instance, admins)
         return instance
+
+    def set_board_owner_always_admin(self, instance, admins):
+        if admins is not None:
+            # Ensure the board owner remains in the admins list.
+            if instance.owner not in admins:
+                raise serializers.ValidationError(
+                    {"admins": "Board owner cannot be removed from administrators."}
+                )
+            instance.admins.set(admins)
 
     def get_member_count(self, obj):
         return obj.members.count() if obj.members else 0
+
+    def validate_members(self, value):
+        if self.instance and self.instance.owner in value:
+            raise serializers.ValidationError("The owner cannot be added as a member.")
+        return value
 
 
 class BoardListSerializer(serializers.ModelSerializer):

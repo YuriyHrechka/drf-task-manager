@@ -17,7 +17,7 @@ class Task(models.Model):
         HIGH = "high", "High"
 
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, default="")  
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tasks"
     )
@@ -34,19 +34,6 @@ class Task(models.Model):
     deadline = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    def clean(self):
-        if self.deadline and self.deadline < timezone.now():
-            raise ValidationError(
-                {
-                    "deadline": "The deadline cannot be in the past. Please select a future date."
-                }
-            )
-        return super().clean()
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
 
     class Meta:
         indexes = [
@@ -68,7 +55,11 @@ class Board(models.Model):
         settings.AUTH_USER_MODEL,
         related_name="task_board_members",
         blank=True,
-        null=True,
+    )
+    admins = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="task_board_admins",
+        blank=True,
     )
     tasks = models.ManyToManyField(
         "Task",
@@ -81,13 +72,6 @@ class Board(models.Model):
     class Meta:
         unique_together = (("owner", "name"),)
         ordering = ["-created_at", "name"]
-
-    def clean(self):
-        if self.members.filter(pk=self.owner.pk).exists():
-            raise ValidationError(
-                "The owner cannot be added as a member of their own task board."
-            )
-        return super().clean()
 
     def __str__(self):
         return f"Name: {self.name} Owner: {self.owner.username} Created At: {self.created_at}"
